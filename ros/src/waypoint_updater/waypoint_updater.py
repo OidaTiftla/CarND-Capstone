@@ -71,7 +71,7 @@ class WaypointUpdater(object):
                     wait_for_pose = False
 
             # Do the actual work
-            if self.pose is not None and self.waypoint_tree is not None:
+            if not None in (self.pose, self.waypoint_tree):
                 # Get closest waypoint
                 closest_waypoint_idx = self.get_closest_waypoint_idx()
                 self.publish_waypoints(closest_waypoint_idx)

@@ -101,7 +101,7 @@ class DBWNode(object):
                     wait_for_current_velocity = False
 
             # Do the actual work
-            if self.twist is not None and self.dbw_enabled is not None and self.current_velocity is not None:
+            if not None in (self.twist, self.dbw_enabled, self.current_velocity):
                 # TODO: Get predicted throttle, brake, and steering using `twist_controller`
                 # You should only publish the control commands if dbw is enabled
                 # throttle, brake, steering = self.controller.control(<proposed linear velocity>,
