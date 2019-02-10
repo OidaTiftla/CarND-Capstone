@@ -59,16 +59,19 @@ class DBWNode(object):
         # TODO: Subscribe to all the topics you need to
         rospy.Subscriber('/twist_cmd', TwistStamped, self.twist_cb)
         rospy.Subscriber('/vehicle/dbw_enabled', Bool, self.dbw_enabled_cb)
+        rospy.Subscriber('/current_velocity', TwistStamped, self.current_velocity_cb)
 
         # Add other member variables you need below
         self.twist = None
         self.dbw_enabled = None
+        self.current_velocity = None
 
         self.loop()
 
     def loop(self):
         wait_for_twist = None
         wait_for_dbw = None
+        wait_for_current_velocity = None
         wait_dbw_enabled = None
 
         rospy.loginfo("[DBW] start loop at 50Hz")
@@ -89,9 +92,16 @@ class DBWNode(object):
                 else:
                     rospy.loginfo("[DBW] dbw available")
                     wait_for_dbw = False
+            if wait_for_current_velocity is None or (wait_for_current_velocity and self.current_velocity is not None):
+                if self.current_velocity is None:
+                    rospy.logwarn("[DBW] no current velocity available")
+                    wait_for_current_velocity = True
+                else:
+                    rospy.loginfo("[DBW] current velocity available")
+                    wait_for_current_velocity = False
 
             # Do the actual work
-            if self.twist is not None and self.dbw_enabled is not None:
+            if self.twist is not None and self.dbw_enabled is not None and self.current_velocity is not None:
                 # TODO: Get predicted throttle, brake, and steering using `twist_controller`
                 # You should only publish the control commands if dbw is enabled
                 # throttle, brake, steering = self.controller.control(<proposed linear velocity>,
@@ -132,6 +142,9 @@ class DBWNode(object):
 
     def dbw_enabled_cb(self, dbw_enabled):
         self.dbw_enabled = dbw_enabled.data
+
+    def current_velocity_cb(self, current_velocity):
+        self.current_velocity = current_velocity
 
 
 if __name__ == '__main__':
