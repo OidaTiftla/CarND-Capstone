@@ -3,6 +3,7 @@
 import rospy
 from geometry_msgs.msg import PoseStamped
 from styx_msgs.msg import Lane, Waypoint
+from std_msgs.msg import Int32
 
 import math
 
@@ -35,15 +36,23 @@ class WaypointUpdater(object):
         rospy.Subscriber('/base_waypoints', Lane, self.waypoints_cb)
 
         # TODO: Add a subscriber for /traffic_waypoint and /obstacle_waypoint below
-
+        rospy.Subscriber('/traffic_waypoint', Int32, self.traffic_cb)
 
         self.final_waypoints_pub = rospy.Publisher('/final_waypoints', Lane, queue_size=1)
+
+        max_speed_kmh_string = rospy.get_param("/waypoint_loader/velocity")
+        self.max_speed = float(max_speed_kmh_string) * 1000.0 / 3600.0
 
         # TODO: Add other member variables you need below
         self.pose = None
         self.base_waypoints = None
         self.waypoints_2d = None
         self.waypoint_tree = None
+        self.traffic_waypoint_idx = None
+
+        self.max_deceleration = -2. # m/s^2
+
+        self.message_decelerate = False
 
         self.loop()
 
@@ -100,8 +109,28 @@ class WaypointUpdater(object):
     def publish_waypoints(self, closest_idx):
         lane = Lane()
         lane.header = self.base_waypoints.header
+        traffic_idx = self.traffic_waypoint_idx
+        if traffic_idx is not None and traffic_idx > closest_idx and traffic_idx < closest_idx + LOOKAHEAD_WPS * 2:
+            if not self.message_decelerate:
+                self.message_decelerate = True
+                rospy.loginfo("[WPU] decelerate because traffic light is red in {0}m".format(self.distance(closest_idx, traffic_idx)))
+            for i in range(closest_idx, closest_idx + LOOKAHEAD_WPS):
+                dist = self.distance(i, traffic_idx)
+                dist -= 6 # m - substract distance from the center of the vehicle to the stop line
+                speed = self.calc_velocity_for_distance_to_stop(dist, self.max_deceleration)
+                speed = max(min(speed, self.max_speed), 0.) # limit speed between 0 and max_speed
+                self.set_waypoint_velocity(i, speed)
+        else:
+            if self.message_decelerate:
+                self.message_decelerate = False
+                rospy.loginfo("[WPU] accelerate because the way is green")
+            for i in range(closest_idx, closest_idx + LOOKAHEAD_WPS):
+                self.set_waypoint_velocity(i, self.max_speed)
         lane.waypoints = self.base_waypoints.waypoints[closest_idx:closest_idx + LOOKAHEAD_WPS]
         self.final_waypoints_pub.publish(lane)
+
+    def calc_velocity_for_distance_to_stop(self, dist, max_deceleration):
+        return -1 * max_deceleration * math.sqrt((2 * max(dist, 0.)) / (-1 * max_deceleration))
 
     def pose_cb(self, msg):
         self.pose = msg
@@ -113,8 +142,10 @@ class WaypointUpdater(object):
             self.waypoint_tree = KDTree(self.waypoints_2d)
 
     def traffic_cb(self, msg):
-        # TODO: Callback for /traffic_waypoint message. Implement
-        pass
+        if msg.data >= 0:
+            self.traffic_waypoint_idx = msg.data
+        else:
+            self.traffic_waypoint_idx = None
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
