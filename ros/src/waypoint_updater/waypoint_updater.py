@@ -48,7 +48,7 @@ class WaypointUpdater(object):
         self.base_waypoints = None
         self.waypoints_2d = None
         self.waypoint_tree = None
-        self.traffic_waypoint_idx = None
+        self.stopline_waypoint_idx = None
 
         self.max_deceleration = -2. # m/s^2
 
@@ -109,13 +109,13 @@ class WaypointUpdater(object):
     def publish_waypoints(self, closest_idx):
         lane = Lane()
         lane.header = self.base_waypoints.header
-        traffic_idx = self.traffic_waypoint_idx
-        if traffic_idx is not None and traffic_idx > closest_idx and traffic_idx < closest_idx + LOOKAHEAD_WPS * 2:
+        stopline_idx = self.stopline_waypoint_idx
+        if stopline_idx is not None and stopline_idx > closest_idx and stopline_idx < closest_idx + LOOKAHEAD_WPS * 2:
             if not self.message_decelerate:
                 self.message_decelerate = True
-                rospy.loginfo("[WPU] decelerate because traffic light is red in {0}m".format(self.distance(closest_idx, traffic_idx)))
+                rospy.loginfo("[WPU] decelerate because traffic light is red in {0}m".format(self.distance(closest_idx, stopline_idx)))
             for i in range(closest_idx, closest_idx + LOOKAHEAD_WPS):
-                dist = self.distance(i, traffic_idx)
+                dist = self.distance(i, stopline_idx)
                 dist -= 6 # m - substract distance from the center of the vehicle to the stop line
                 speed = self.calc_velocity_for_distance_to_stop(dist, self.max_deceleration)
                 speed = max(min(speed, self.max_speed), 0.) # limit speed between 0 and max_speed
@@ -143,9 +143,9 @@ class WaypointUpdater(object):
 
     def traffic_cb(self, msg):
         if msg.data >= 0:
-            self.traffic_waypoint_idx = msg.data
+            self.stopline_waypoint_idx = msg.data
         else:
-            self.traffic_waypoint_idx = None
+            self.stopline_waypoint_idx = None
 
     def obstacle_cb(self, msg):
         # TODO: Callback for /obstacle_waypoint message. We will implement it later
