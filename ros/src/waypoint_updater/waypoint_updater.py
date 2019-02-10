@@ -55,15 +55,15 @@ class WaypointUpdater(object):
         rate = rospy.Rate(50) # Hz
         while not rospy.is_shutdown():
             # Messages if not all variables are available
-            if wait_for_waypoint_tree is None or (wait_for_waypoint_tree and self.waypoint_tree):
-                if not self.waypoint_tree:
+            if wait_for_waypoint_tree is None or (wait_for_waypoint_tree and self.waypoint_tree is not None):
+                if self.waypoint_tree is None:
                     rospy.logwarn("no waypoint tree available")
                     wait_for_waypoint_tree = True
                 else:
                     rospy.loginfo("waypoint tree available")
                     wait_for_waypoint_tree = False
-            if wait_for_pose is None or (wait_for_pose and self.pose):
-                if not self.pose:
+            if wait_for_pose is None or (wait_for_pose and self.pose is not None):
+                if self.pose is None:
                     rospy.logwarn("no pose available")
                     wait_for_pose = True
                 else:
@@ -71,7 +71,7 @@ class WaypointUpdater(object):
                     wait_for_pose = False
 
             # Do the actual work
-            if self.pose and self.waypoint_tree:
+            if self.pose is not None and self.waypoint_tree is not None:
                 # Get closest waypoint
                 closest_waypoint_idx = self.get_closest_waypoint_idx()
                 self.publish_waypoints(closest_waypoint_idx)
