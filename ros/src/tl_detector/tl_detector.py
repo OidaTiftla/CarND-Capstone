@@ -12,6 +12,8 @@ import cv2
 import yaml
 
 from scipy.spatial import KDTree
+import numpy as np
+from tf.transformations import euler_from_quaternion, quaternion_from_euler
 
 STATE_COUNT_THRESHOLD = 3
 
@@ -125,7 +127,7 @@ class TLDetector(object):
         """
         # For testing, just return the light state
         # TODO: remove the next line after testing
-        return light.state
+        # return light.state
 
         if(not self.has_image):
             self.prev_light_loc = None
@@ -134,7 +136,32 @@ class TLDetector(object):
         cv_image = self.bridge.imgmsg_to_cv2(self.camera_image, "bgr8")
 
         #Get classification
-        return self.light_classifier.get_classification(cv_image)
+        prob = self.calc_probability_of_traffic_light_in_camera_view(light)
+        return self.light_classifier.get_classification(cv_image, prob)
+
+    def calc_probability_of_traffic_light_in_camera_view(self, light):
+        light_pos = light.pose.pose.position
+        car_pos = self.pose.pose.position
+
+        car_roll, car_pitch, car_yaw = euler_from_quaternion([self.pose.pose.orientation.x, self.pose.pose.orientation.y, self.pose.pose.orientation.z, self.pose.pose.orientation.w])
+        car_w = car_yaw
+
+        car_direction = np.array([np.cos(car_w), np.sin(car_w)])
+        light_direction = np.array([light_pos.x - car_pos.x, light_pos.y - car_pos.y])
+        cos = np.dot(car_direction, light_direction) / np.linalg.norm(car_direction) / np.linalg.norm(light_direction)
+        angle = np.arccos(np.clip(cos, -1, 1))
+
+        dx = light_pos.x - car_pos.x
+        dy = light_pos.y - car_pos.y
+        dist_to_light = np.sqrt(dx**2 + dy**2)
+
+        detect_dist = dist_to_light - 10 # m - if the car is below the traffic light, it will not see the light
+        detect_angle = abs(angle)
+        prob_dist = (200 - detect_dist) / 200
+        prob_angle = (np.radians(45) - detect_angle) / np.radians(45)
+        probability = min(max(prob_dist * prob_angle, 0), 1) if detect_angle > 0. and detect_dist > 0. else 0.
+        # rospy.loginfo("[TLD] probability of traffic light {0} ({1} * {2})".format(probability, prob_dist, prob_angle))
+        return probability
 
     def process_traffic_lights(self):
         """Finds closest visible traffic light, if one exists, and determines its
