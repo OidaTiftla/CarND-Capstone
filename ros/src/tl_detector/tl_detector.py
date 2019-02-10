@@ -107,7 +107,6 @@ class TLDetector(object):
             int: index of the closest waypoint in self.base_waypoints
 
         """
-        #TODO implement
         if self.waypoint_tree is None:
             return -1
         else:
