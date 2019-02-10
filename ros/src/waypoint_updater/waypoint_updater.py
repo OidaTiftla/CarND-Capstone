@@ -48,10 +48,6 @@ class WaypointUpdater(object):
         self.loop()
 
     def loop(self):
-        import time
-        rospy.loginfo("sleep before starting loop")
-        time.sleep(2)
-
         wait_for_pose = None
         wait_for_waypoint_tree = None
 
