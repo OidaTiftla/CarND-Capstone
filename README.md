@@ -1,4 +1,40 @@
-This is the project repo for the final project of the Udacity Self-Driving Car Nanodegree: Programming a Real Self-Driving Car. For more information about the project, see the project introduction [here](https://classroom.udacity.com/nanodegrees/nd013/parts/6047fe34-d93c-4f50-8336-b70ef10cb4b2/modules/e1a23b06-329a-4684-a717-ad476f0d8dff/lessons/462c933d-9f24-42d3-8bdc-a08a5fc866e4/concepts/5ab4b122-83e6-436d-850f-9f4d26627fd9).
+# Project Capstone
+
+This is the project repo for the final project of the Udacity Self-Driving Car Nanodegree: Programming a Real Self-Driving Car.
+
+## The Solution
+
+The solution consist of several nodes. Some of them were already implemented by Udacity. And the following three nodes needed to be implemented by the student:
+
+- [Traffic Light Detection Node](ros/src/tl_detector/tl_detector.py)
+- [Waypoint Updater Node](ros/src/waypoint_updater/waypoint_updater.py)
+- [DBW (drive by wire) Node](ros/src/twist_controller/dbw_node.py)
+
+Here you can see all nodes which run, when you use the simulator:
+
+![rosgraph](rosgraph.png)
+
+### Traffic Light Detection Node
+
+The traffic light detection node uses the parameter `/traffic_light_config` to get the positions of the stop lines (from a predefined map). The topic `/current_pose` and `/base_waypoints` are used to determine the nearest stop line and the corresponding waypoint. The last topic, this node uses, is the `/image_color`. This topic publishes the images from the camera mounted to the car. Using these images the car should detect traffic lights and classify them, wether they are read yellow or green. If the light is red, the vehicle should stop in front of the traffic light and wait until it gets green. Therefore it publishes the next detected stop traffic light to the topic `/traffic_waypoint`.
+
+![tl-detector-ros-graph.png](imgs/tl-detector-ros-graph.png)
+
+Currently the traffic light detector and classifier is very simple. It converts the image to HSV and uses some thresholds to filter for red colors. If the counts of the red colors are higher than a threshold, the image is considered to contain a red stop light. In order to compensate some false detections the number of red pixels is multiplied with a probability value. This probability is calculated based on how likely it is, that the car can see a red traffic light. The orientation of the vehicle to the next traffic light and the distance to the next traffic light are used to calculate the probability.
+
+### Waypoint Updater Node
+
+The waypoint updater node uses the parameter `/waypoint_loader/velocity` to get the maximum speed the car should drive. The topic `/current_pose` and `/base_waypoints` are used to determine the upcoming trajectory the vehicle should follow. If a red stop light is detected and received from the topic `/traffic_waypoint` this node calculates the deceleration needed to stop in front of the stop line. The topic `/obstacle_waypoints` is currently not used.
+
+![waypoint-updater-ros-graph.png](imgs/waypoint-updater-ros-graph.png)
+
+### DBW (drive by wire) Node
+
+Finally the DBW node uses several parameters describing the vehicle's physics. These parameters are used to calculate the steering angle, throttle and brake. It receives commands from the `/twist_cmd` topic. Comparing the desired velocity from the twist command with the current velocity from the topic `/current_velocity` gives a difference. This error is fed into a PID controller to calculate throttle and brake commands (published to `/vehicle/throttle_cmd` and `/vehicle/brake_cmd`). For the steering command the twist command includes not only a longitudinal velocity, but also a lateral velocity. Both velocities are used by the YawController to create steering angle commands (published to `/vehicle/steering_cmd`). If the topic `/vehicle/dbw_enabled` sends a value of `False`, the DBW node disables all commands and sends zeros, so the driver can control the car.
+
+![dbw-node-ros-graph.png](imgs/dbw-node-ros-graph.png)
+
+## Installation
 
 Please use **one** of the two installation options, either native **or** docker installation.
 
