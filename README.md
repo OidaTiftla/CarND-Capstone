@@ -12,7 +12,7 @@ The solution consist of several nodes. Some of them were already implemented by 
 
 Here you can see all nodes which run, when you use the simulator:
 
-![rosgraph](rosgraph.png)
+![rosgraph](imgs/rosgraph.png)
 
 ### Traffic Light Detection Node
 
