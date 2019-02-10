@@ -51,23 +51,23 @@ class WaypointUpdater(object):
         wait_for_pose = None
         wait_for_waypoint_tree = None
 
-        rospy.loginfo("start loop at 50Hz")
+        rospy.loginfo("[WPU] start loop at 50Hz")
         rate = rospy.Rate(50) # Hz
         while not rospy.is_shutdown():
             # Messages if not all variables are available
             if wait_for_waypoint_tree is None or (wait_for_waypoint_tree and self.waypoint_tree is not None):
                 if self.waypoint_tree is None:
-                    rospy.logwarn("no waypoint tree available")
+                    rospy.logwarn("[WPU] no waypoint tree available")
                     wait_for_waypoint_tree = True
                 else:
-                    rospy.loginfo("waypoint tree available")
+                    rospy.loginfo("[WPU] waypoint tree available")
                     wait_for_waypoint_tree = False
             if wait_for_pose is None or (wait_for_pose and self.pose is not None):
                 if self.pose is None:
-                    rospy.logwarn("no pose available")
+                    rospy.logwarn("[WPU] no pose available")
                     wait_for_pose = True
                 else:
-                    rospy.loginfo("pose available")
+                    rospy.loginfo("[WPU] pose available")
                     wait_for_pose = False
 
             # Do the actual work
